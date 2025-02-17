@@ -8,7 +8,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-scripts": "^5.0.0",
-    "react-transition-group": "4.4.5"
+    "react-transition-group": "4.4.5",
+    "node-fetch": "^2.6.7"
   },
   "devDependencies": {
     "@types/react": "19.0.0",
