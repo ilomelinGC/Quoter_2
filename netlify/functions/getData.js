@@ -2,7 +2,7 @@
 const fetch = require("node-fetch");
 
 // Our Airtable table name for clinics
-const CLINICS_TABLE = "Clinics";
+const CLINICS_TABLE = "Clinics Database";
 
 // Our static treatments list (the one we started with)
 const staticTreatments = [
