@@ -1,25 +1,75 @@
 import React, { useState, useRef, useEffect } from "react";
-import { CSSTransition } from "react-transition-group";
 import "./App.css";
 
-// ----------------------- DATA -----------------------
-
 function App() {
-  // editing === true means the builder overlay is visible.
-  // When false, only the summary is visible.
+  // Declare all hooks unconditionally.
   const [editing, setEditing] = useState(false);
-  // Clinic Information
   const [clinics, setClinics] = useState([]);
   const [treatments, setTreatments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [treatmentInput, setTreatmentInput] = useState("");
+  const [selectedTreatmentId, setSelectedTreatmentId] = useState("");
+  const [treatmentPlan, setTreatmentPlan] = useState([]);
+  const [step, setStep] = useState(1);
+  const [comparedClinics, setComparedClinics] = useState([]);
+  const builderRef = useRef(null);
+  const [typedText, setTypedText] = useState("");
+  const [filteredTreatments, setFilteredTreatments] = useState(treatments);
 
+  // Handler for changes in the autocomplete text field
+const handleAutocompleteChange = (e) => {
+  const value = e.target.value;
+  setTypedText(value);
+
+  // Filter treatments by typed text
+  if (!value) {
+    // If empty, show all
+    setFilteredTreatments(treatments);
+    setSelectedTreatmentId("");
+  } else {
+    const lowerValue = value.toLowerCase();
+    const filtered = treatments.filter((t) =>
+      t.name.toLowerCase().includes(lowerValue)
+    );
+    setFilteredTreatments(filtered);
+
+    // If there's an exact match, select it; otherwise, clear
+    const exactMatch = filtered.find(
+      (t) => t.name.toLowerCase() === lowerValue
+    );
+    setSelectedTreatmentId(exactMatch ? exactMatch.id : "");
+  }
+};
+
+// Handler for when the user clicks a treatment in the list
+const handleSelectTreatment = (t) => {
+  setTypedText(t.name);
+  setSelectedTreatmentId(t.id);
+};
+
+  // UI text constants.
+  const builderCopy = {
+    headline: "Add a Treatment",
+    subheading:
+      "Enter the treatment you need and tap 'Add Treatment' to add it to your plan.",
+  };
+  const summaryCopy = {
+    headline: "Your Customized Treatment Plan",
+    subheading:
+      "Review the treatments you've added below. You can add more treatments or proceed to select the clinic that best suits your needs.",
+  };
+  const clinicCopy = {
+    headline: "Select a Clinic",
+    subheading:
+      "Choose the clinic that best fits your needs. Estimated costs are based on your treatment plan.",
+  };
+
+  // Fetch data from the Netlify function.
   useEffect(() => {
-    fetch(
-      "https://fantastic-beijinho-92131c.netlify.app/.netlify/functions/getData"
-    )
+    fetch("https://fantastic-beijinho-92131c.netlify.app/.netlify/functions/getData")
       .then((res) => res.json())
       .then((data) => {
-        console.log("Fetched data:", data); // Log the data structure
+        console.log("Fetched data:", data);
         setClinics(data.clinics);
         setTreatments(data.treatments);
         setLoading(false);
@@ -30,56 +80,29 @@ function App() {
       });
   }, []);
 
-  if (loading) {
-    return <div>Loading data from Airtable...</div>;
-  }
-
-  // For the current treatment selection
-  const [treatmentInput, setTreatmentInput] = useState("");
-  const [selectedTreatmentId, setSelectedTreatmentId] = useState("");
-
-  // The overall treatment plan (array of added treatments)
-  const [treatmentPlan, setTreatmentPlan] = useState([]);
-
-  // Step management: 1 = Treatment Plan, 2 = Clinic Selection
-  const [step, setStep] = useState(1);
-
-  // Ref for the builder overlay transition
-  const builderRef = useRef(null);
-
-  // Handler for updating the treatment input (autocomplete via datalist)
+  // Handler for treatment input changes.
   const handleTreatmentInputChange = (e) => {
     const value = e.target.value;
     setTreatmentInput(value);
-    // Check for an exact match (case-insensitive)
     const match = treatments.find(
       (t) => t.name.toLowerCase() === value.toLowerCase()
     );
-    if (match) {
-      setSelectedTreatmentId(match.id);
-    } else {
-      setSelectedTreatmentId("");
-    }
+    setSelectedTreatmentId(match ? match.id : "");
   };
 
-  // Add the selected treatment to the plan and close the overlay
+  // Add a treatment to the plan.
   const addTreatment = () => {
     if (selectedTreatmentId) {
       const treat = treatments.find((t) => t.id === selectedTreatmentId);
-      const newItem = {
-        id: treat.id,
-        name: treat.name,
-        quantity: 1, // Default quantity is 1
-      };
+      const newItem = { id: treat.id, name: treat.name, quantity: 1 };
       setTreatmentPlan((prev) => [...prev, newItem]);
-      // Clear inputs and close the builder overlay
       setTreatmentInput("");
       setSelectedTreatmentId("");
       setEditing(false);
     }
   };
 
-  // Update the quantity of a treatment in the plan
+  // Update treatment quantity.
   const updateQuantity = (index, newQuantity) => {
     const treat = treatmentPlan[index];
     const maxUnits = treatments.find((t) => t.id === treat.id).maxUnits;
@@ -93,16 +116,15 @@ function App() {
     }
   };
 
-  // Remove a treatment from the plan
+  // Remove a treatment from the plan.
   const removeTreatment = (index) => {
     setTreatmentPlan((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Compute the estimated cost for a clinic based on the treatment plan
+  // Compute the estimated cost for a clinic.
   const computeClinicCost = (clinic) => {
     let total = 0;
     let missing = [];
-    // Guard: If no pricing info, treat all treatments as missing.
     if (!clinic.procedurePricing) {
       return { total: 0, missing: treatmentPlan.map((item) => item.name) };
     }
@@ -117,7 +139,7 @@ function App() {
     return { total, missing };
   };
 
-  // Render the treatment plan summary as a table (quote-style)
+  // Render the treatment plan summary.
   const renderPlanSummary = () => {
     if (treatmentPlan.length === 0) {
       return <p className="empty-summary">No treatments added yet.</p>;
@@ -162,6 +184,7 @@ function App() {
     );
   };
 
+  // Render clinic cards.
   const renderClinicCards = () => {
     return clinics.map((clinic) => {
       console.log("Rendering clinic:", clinic);
@@ -169,10 +192,7 @@ function App() {
       return (
         <div key={clinic.id} className="clinic-card">
           <img
-            src={
-              clinic.picture ||
-              "https://via.placeholder.com/150x100?text=No+Image"
-            }
+            src={clinic.picture || "https://via.placeholder.com/150x100?text=No+Image"}
             alt={clinic.name || clinic["Clinic Name"] || "Clinic"}
             className="clinic-picture"
           />
@@ -210,17 +230,16 @@ function App() {
     });
   };
 
-  const [comparedClinics, setComparedClinics] = useState([]);
-
+  // Handle clinic comparison selection.
   const handleCompareClinic = (clinicId) => {
-    setComparedClinics(
-      (prev) =>
-        prev.includes(clinicId)
-          ? prev.filter((id) => id !== clinicId) // Deselect clinic
-          : [...prev, clinicId] // Select clinic
+    setComparedClinics((prev) =>
+      prev.includes(clinicId)
+        ? prev.filter((id) => id !== clinicId)
+        : [...prev, clinicId]
     );
   };
 
+  // Render the comparison view.
   const renderComparisonView = () => {
     if (comparedClinics.length < 2) {
       return <p>Select at least 2 clinics to compare.</p>;
@@ -249,9 +268,7 @@ function App() {
               <td>Estimated Total</td>
               {comparedClinics.map((clinicId) => {
                 const clinic = clinics.find((c) => c.id === clinicId);
-                const { total } = clinic
-                  ? computeClinicCost(clinic)
-                  : { total: 0 };
+                const { total } = clinic ? computeClinicCost(clinic) : { total: 0 };
                 return <td key={clinicId}>${total.toLocaleString()}</td>;
               })}
             </tr>
@@ -275,7 +292,9 @@ function App() {
                 return (
                   <td key={clinicId}>
                     {clinic && clinic.highlights
-                      ? clinic.highlights.join(", ")
+                      ? Array.isArray(clinic.highlights)
+                        ? clinic.highlights.join(", ")
+                        : clinic.highlights
                       : "No highlights"}
                   </td>
                 );
@@ -287,81 +306,73 @@ function App() {
     );
   };
 
-  // Engaging copy
-  const builderCopy = {
-    headline: "Add a Treatment",
-    subheading:
-      "Enter the treatment you need and tap 'Add Treatment' to add it to your plan.",
-  };
-
-  const summaryCopy = {
-    headline: "Your Customized Treatment Plan",
-    subheading:
-      "Review the treatments you've added below. You can add more treatments or proceed to select the clinic that best suits your needs.",
-  };
-
-  const clinicCopy = {
-    headline: "Select a Clinic",
-    subheading:
-      "Choose the clinic that best fits your needs. Estimated costs are based on your treatment plan.",
-  };
-
+  // Return the full component tree.
   return (
     <div className="treatment-app-container">
-      {/* Step 1: Treatment Plan Builder */}
-      {step === 1 && (
+      {loading ? (
+        <div>Loading data from Airtable...</div>
+      ) : (
         <>
-          {/* Summary Card: Always visible if there's at least one treatment */}
-          {treatmentPlan.length > 0 && (
-            <div
-              className={`treatment-summary-card ${editing ? "grayed" : ""}`}
-            >
-              <h2>{summaryCopy.headline}</h2>
-              <p>{summaryCopy.subheading}</p>
-              {renderPlanSummary()}
-              <div className="summary-actions">
-                <button
-                  className="btn secondary"
-                  onClick={() => setEditing(true)}
+          {step === 1 && (
+            <>
+              {treatmentPlan.length > 0 && (
+                <div
+                  className={`treatment-summary-card ${
+                    editing ? "grayed" : ""
+                  }`}
                 >
-                  Add Treatment
-                </button>
-                <button className="btn accent" onClick={() => setStep(2)}>
-                  Select Clinic
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Builder Overlay: Always rendered when editing is true, or if no treatment added */}
-          {(editing || treatmentPlan.length === 0) && (
-            <CSSTransition
-              in={editing || treatmentPlan.length === 0}
-              timeout={300}
-              classNames="fade-slide"
-              unmountOnExit
-              nodeRef={builderRef}
-            >
-              <div className="treatment-card overlay" ref={builderRef}>
+                  <h2>{summaryCopy.headline}</h2>
+                  <p>{summaryCopy.subheading}</p>
+                  {renderPlanSummary()}
+                  <div className="summary-actions">
+                    <button
+                      className="btn secondary"
+                      onClick={() => setEditing(true)}
+                    >
+                      Add Treatment
+                    </button>
+                    <button className="btn accent" onClick={() => setStep(2)}>
+                      Select Clinic
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div className="treatment-card overlay">
                 <h2>{builderCopy.headline}</h2>
                 <p>{builderCopy.subheading}</p>
+
+                {/* Autocomplete text field */}
                 <div className="form-group">
-                  <label htmlFor="treatment-input">Treatment</label>
+                  <label htmlFor="treatment-search">Treatment</label>
                   <input
-                    id="treatment-input"
+                    id="treatment-search"
                     type="text"
-                    list="treatments-list"
-                    value={treatmentInput}
-                    onChange={handleTreatmentInputChange}
-                    placeholder="Start typing..."
+                    placeholder="Search or select a treatment..."
+                    value={typedText}
+                    onChange={handleAutocompleteChange}
                     className="autocomplete-input"
                   />
-                  <datalist id="treatments-list">
-                    {treatments.map((t) => (
-                      <option key={t.id} value={t.name} />
-                    ))}
-                  </datalist>
                 </div>
+
+                {/* Filtered Treatment List */}
+                {filteredTreatments.length > 0 ? (
+                  <div className="autocomplete-list">
+                    {filteredTreatments.map((t) => (
+                      <div
+                        key={t.id}
+                        className={`autocomplete-item ${
+                          selectedTreatmentId === t.id ? "selected" : ""
+                        }`}
+                        onClick={() => handleSelectTreatment(t)}
+                      >
+                        {t.name}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="no-matches">No matching treatments</p>
+                )}
+
                 <div className="form-group inline">
                   {/* Show "Back" button only if there are treatments */}
                   {treatmentPlan.length > 0 && (
@@ -379,23 +390,21 @@ function App() {
                   )}
                 </div>
               </div>
-            </CSSTransition>
+            </>
+          )}
+          {step === 2 && (
+            <div className="clinic-selection">
+              <h2>{clinicCopy.headline}</h2>
+              <p>{clinicCopy.subheading}</p>
+              <div className="clinic-cards">{renderClinicCards()}</div>
+              <div className="summary-actions">
+                <button className="btn secondary" onClick={() => setStep(1)}>
+                  Back to Treatment Plan
+                </button>
+              </div>
+            </div>
           )}
         </>
-      )}
-
-      {/* Step 2: Clinic Selection */}
-      {step === 2 && (
-        <div className="clinic-selection">
-          <h2>{clinicCopy.headline}</h2>
-          <p>{clinicCopy.subheading}</p>
-          <div className="clinic-cards">{renderClinicCards()}</div>
-          <div className="summary-actions">
-            <button className="btn secondary" onClick={() => setStep(1)}>
-              Back to Treatment Plan
-            </button>
-          </div>
-        </div>
       )}
     </div>
   );

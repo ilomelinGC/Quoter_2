@@ -138,7 +138,7 @@ const staticTreatments = [
   },
 ];
 
-// Define a mapping between our treatment IDs and the possible Airtable field names
+// Mapping from treatment IDs to possible Airtable field names
 const treatmentFieldMapping = {
   "all-on-four": [
     "All-on-4 package for both arches - GC",
@@ -189,9 +189,7 @@ const treatmentFieldMapping = {
 const fetchAirtableData = async (tableName) => {
   const BASE_ID = process.env.AIRTABLE_BASE_ID;
   const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-  const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(
-    tableName
-  )}`;
+  const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(tableName)}`;
 
   const response = await fetch(url, {
     headers: {
@@ -207,7 +205,6 @@ const fetchAirtableData = async (tableName) => {
 
   return data.records.map((record) => {
     const fields = record.fields;
-    // If processing Clinics, construct a procedurePricing object using our mapping
     if (tableName === CLINICS_TABLE) {
       let pricing = {};
       for (const treatmentId in treatmentFieldMapping) {
@@ -219,8 +216,15 @@ const fetchAirtableData = async (tableName) => {
           }
         }
       }
-      // Add the constructed pricing object to the fields under 'procedurePricing'
       fields.procedurePricing = pricing;
+      // Ensure a 'highlights' field exists.
+      if (!fields.hasOwnProperty("highlights")) {
+        if (fields["Specialties Available at Clinic"]) {
+          fields.highlights = fields["Specialties Available at Clinic"];
+        } else {
+          fields.highlights = []; // default to empty array
+        }
+      }
     }
     return {
       id: record.id,
@@ -230,17 +234,37 @@ const fetchAirtableData = async (tableName) => {
 };
 
 exports.handler = async function (event, context) {
-  try {
-    const clinics = await fetchAirtableData(CLINICS_TABLE);
-
+  // Handle preflight OPTIONS request for CORS.
+  if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      },
+      body: "",
+    };
+  }
+  
+  try {
+    const clinics = await fetchAirtableData(CLINICS_TABLE);
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
       body: JSON.stringify({ clinics, treatments: staticTreatments }),
     };
   } catch (error) {
     console.error("Error in getData function:", error);
     return {
       statusCode: 500,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
       body: JSON.stringify({ error: error.toString() }),
     };
   }

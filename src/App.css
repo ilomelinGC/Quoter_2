@@ -127,6 +127,32 @@ body {
   border-radius: 4px;
   font-family: "Figtree", sans-serif;
 }
+.autocomplete-list {
+  border: 1px solid #ccc;
+  background: #fff;
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 10px 0;
+  border-radius: 4px;
+}
+
+.autocomplete-item {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.autocomplete-item:hover {
+  background-color: #f0f0f0;
+}
+
+.autocomplete-item.selected {
+  background-color: #b2eaf2;
+}
+
+.no-matches {
+  color: #999;
+  font-style: italic;
+}
 
 /* Inline group for buttons */
 .form-group.inline {
