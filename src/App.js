@@ -1,8 +1,6 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { CSSTransition } from "react-transition-group";
 import "./App.css";
-import { procedures, clinics, treatments } from "./Data.js"; // Import data from data.js
-import { TreatmentBuilder } from "./treatmentBuilder";
 
 // ----------------------- DATA -----------------------
 
@@ -10,6 +8,31 @@ function App() {
   // editing === true means the builder overlay is visible.
   // When false, only the summary is visible.
   const [editing, setEditing] = useState(false);
+  // Clinic Information
+  const [clinics, setClinics] = useState([]);
+  const [treatments, setTreatments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Fetch data from your serverless function on Netlify
+    fetch(
+      "https://fantastic-beijinho-92131c.netlify.app/.netlify/functions/getData"
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        setClinics(data.clinics);
+        setTreatments(data.treatments);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("Error fetching data:", error);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return <div>Loading data from Airtable...</div>;
+  }
 
   // For the current treatment selection
   const [treatmentInput, setTreatmentInput] = useState("");
