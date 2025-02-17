@@ -187,11 +187,15 @@ function App() {
             <p className="clinic-warning">Missing: {missing.join(", ")}</p>
           )}
           <div className="badge-container">
-            {clinic.highlights?.map((badge, idx) => (
-              <span key={idx} className="badge">
-                {badge}
-              </span>
-            )) || null}
+            {Array.isArray(clinic.highlights) ? (
+              clinic.highlights.map((badge, idx) => (
+                <span key={idx} className="badge">
+                  {badge}
+                </span>
+              ))
+            ) : clinic.highlights ? (
+              <span className="badge">{clinic.highlights}</span>
+            ) : null}
           </div>
           <label className="compare-checkbox">
             <input
@@ -230,7 +234,13 @@ function App() {
               <th>Clinic</th>
               {comparedClinics.map((clinicId) => {
                 const clinic = clinics.find((c) => c.id === clinicId);
-                return <th key={clinicId}>{clinic.name}</th>;
+                return (
+                  <th key={clinicId}>
+                    {clinic
+                      ? clinic.name || clinic["Clinic Name"] || "Unknown Clinic"
+                      : "Unknown Clinic"}
+                  </th>
+                );
               })}
             </tr>
           </thead>
@@ -238,9 +248,10 @@ function App() {
             <tr>
               <td>Estimated Total</td>
               {comparedClinics.map((clinicId) => {
-                const { total } = computeClinicCost(
-                  clinics.find((c) => c.id === clinicId)
-                );
+                const clinic = clinics.find((c) => c.id === clinicId);
+                const { total } = clinic
+                  ? computeClinicCost(clinic)
+                  : { total: 0 };
                 return <td key={clinicId}>${total.toLocaleString()}</td>;
               })}
             </tr>
@@ -248,14 +259,26 @@ function App() {
               <td>Location</td>
               {comparedClinics.map((clinicId) => {
                 const clinic = clinics.find((c) => c.id === clinicId);
-                return <td key={clinicId}>{clinic.location}</td>;
+                return (
+                  <td key={clinicId}>
+                    {clinic
+                      ? clinic.location || clinic["Location"] || "No Location"
+                      : "No Location"}
+                  </td>
+                );
               })}
             </tr>
             <tr>
               <td>Highlights</td>
               {comparedClinics.map((clinicId) => {
                 const clinic = clinics.find((c) => c.id === clinicId);
-                return <td key={clinicId}>{clinic.highlights.join(", ")}</td>;
+                return (
+                  <td key={clinicId}>
+                    {clinic && clinic.highlights
+                      ? clinic.highlights.join(", ")
+                      : "No highlights"}
+                  </td>
+                );
               })}
             </tr>
           </tbody>
@@ -263,6 +286,7 @@ function App() {
       </div>
     );
   };
+
   // Engaging copy
   const builderCopy = {
     headline: "Add a Treatment",
