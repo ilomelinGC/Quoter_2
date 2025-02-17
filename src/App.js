@@ -15,6 +15,7 @@ function App() {
   const builderRef = useRef(null);
   const [typedText, setTypedText] = useState("");
   const [filteredTreatments, setFilteredTreatments] = useState(treatments);
+  const effectiveEditing = treatmentPlan.length === 0 ? true : editing;
 
   // Handler for changes in the autocomplete text field
 const handleAutocompleteChange = (e) => {
@@ -307,6 +308,8 @@ const handleSelectTreatment = (t) => {
   };
 
   // Return the full component tree.
+
+
   return (
     <div className="treatment-app-container">
       {loading ? (
@@ -337,61 +340,55 @@ const handleSelectTreatment = (t) => {
                   </div>
                 </div>
               )}
-              <div className="treatment-card overlay">
-                <h2>{builderCopy.headline}</h2>
-                <p>{builderCopy.subheading}</p>
 
-                {/* Autocomplete text field */}
-                <div className="form-group">
-                  <label htmlFor="treatment-search">Treatment</label>
-                  <input
-                    id="treatment-search"
-                    type="text"
-                    placeholder="Search or select a treatment..."
-                    value={typedText}
-                    onChange={handleAutocompleteChange}
-                    className="autocomplete-input"
-                  />
-                </div>
-
-                {/* Filtered Treatment List */}
-                {filteredTreatments.length > 0 ? (
-                  <div className="autocomplete-list">
-                    {filteredTreatments.map((t) => (
-                      <div
-                        key={t.id}
-                        className={`autocomplete-item ${
-                          selectedTreatmentId === t.id ? "selected" : ""
-                        }`}
-                        onClick={() => handleSelectTreatment(t)}
-                      >
-                        {t.name}
-                      </div>
-                    ))}
+              {/* Builder Overlay with CSSTransition */}
+              <CSSTransition
+                in={effectiveEditing}
+                timeout={300}
+                classNames="fade-slide"
+                unmountOnExit
+                nodeRef={builderRef}
+              >
+                <div className="treatment-card overlay" ref={builderRef}>
+                  <h2>{builderCopy.headline}</h2>
+                  <p>{builderCopy.subheading}</p>
+                  <div className="form-group">
+                    <label htmlFor="treatment-input">Treatment</label>
+                    <input
+                      id="treatment-input"
+                      type="text"
+                      list="treatments-list"
+                      value={treatmentInput}
+                      onChange={handleTreatmentInputChange}
+                      placeholder="Start typing..."
+                      className="autocomplete-input"
+                    />
+                    <datalist id="treatments-list">
+                      {treatments.map((t) => (
+                        <option key={t.id} value={t.name} />
+                      ))}
+                    </datalist>
                   </div>
-                ) : (
-                  <p className="no-matches">No matching treatments</p>
-                )}
-
-                <div className="form-group inline">
-                  {/* Show "Back" button only if there are treatments */}
-                  {treatmentPlan.length > 0 && (
-                    <button
-                      className="btn secondary"
-                      onClick={() => setEditing(false)}
-                    >
-                      Back
-                    </button>
-                  )}
-                  {selectedTreatmentId && (
-                    <button className="btn primary" onClick={addTreatment}>
-                      Add Treatment
-                    </button>
-                  )}
+                  <div className="form-group inline">
+                    {treatmentPlan.length > 0 && (
+                      <button
+                        className="btn secondary"
+                        onClick={() => setEditing(false)}
+                      >
+                        Back
+                      </button>
+                    )}
+                    {selectedTreatmentId && (
+                      <button className="btn primary" onClick={addTreatment}>
+                        Add Treatment
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
+              </CSSTransition>
             </>
           )}
+
           {step === 2 && (
             <div className="clinic-selection">
               <h2>{clinicCopy.headline}</h2>
