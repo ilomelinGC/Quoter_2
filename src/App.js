@@ -102,6 +102,10 @@ function App() {
   const computeClinicCost = (clinic) => {
     let total = 0;
     let missing = [];
+    // Guard: If no pricing info, treat all treatments as missing.
+    if (!clinic.procedurePricing) {
+      return { total: 0, missing: treatmentPlan.map((item) => item.name) };
+    }
     treatmentPlan.forEach((item) => {
       const price = clinic.procedurePricing[item.id];
       if (price && price > 0) {
@@ -158,9 +162,9 @@ function App() {
     );
   };
 
-  // Render the clinic selection cards
   const renderClinicCards = () => {
     return clinics.map((clinic) => {
+      console.log("Rendering clinic:", clinic);
       const { total, missing } = computeClinicCost(clinic);
       return (
         <div key={clinic.id} className="clinic-card">
@@ -174,9 +178,7 @@ function App() {
           />
           <h3>{clinic.name || clinic["Clinic Name"] || "No Name"}</h3>
           <p className="clinic-location">
-            {Array.isArray(clinic.location)
-              ? clinic.location.join(", ")
-              : clinic.location || "No Location"}
+            {clinic.location || clinic["Location"] || "No Location"}
           </p>
           <p className="clinic-cost">
             Estimated Total: ${total.toLocaleString()}
