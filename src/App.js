@@ -14,12 +14,12 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch data from your serverless function on Netlify
     fetch(
       "https://fantastic-beijinho-92131c.netlify.app/.netlify/functions/getData"
     )
       .then((res) => res.json())
       .then((data) => {
+        console.log("Fetched data:", data); // Log the data structure
         setClinics(data.clinics);
         setTreatments(data.treatments);
         setLoading(false);
@@ -165,12 +165,19 @@ function App() {
       return (
         <div key={clinic.id} className="clinic-card">
           <img
-            src={clinic.picture} // Use the image URL from the clinic data
-            alt={clinic.name}
+            src={
+              clinic.picture ||
+              "https://via.placeholder.com/150x100?text=No+Image"
+            }
+            alt={clinic.name || clinic["Clinic Name"] || "Clinic"}
             className="clinic-picture"
           />
-          <h3>{clinic.name}</h3>
-          <p className="clinic-location">{clinic.location}</p>
+          <h3>{clinic.name || clinic["Clinic Name"] || "No Name"}</h3>
+          <p className="clinic-location">
+            {Array.isArray(clinic.location)
+              ? clinic.location.join(", ")
+              : clinic.location || "No Location"}
+          </p>
           <p className="clinic-cost">
             Estimated Total: ${total.toLocaleString()}
           </p>
@@ -178,11 +185,11 @@ function App() {
             <p className="clinic-warning">Missing: {missing.join(", ")}</p>
           )}
           <div className="badge-container">
-            {clinic.highlights.map((badge, idx) => (
+            {clinic.highlights?.map((badge, idx) => (
               <span key={idx} className="badge">
                 {badge}
               </span>
-            ))}
+            )) || null}
           </div>
           <label className="compare-checkbox">
             <input
