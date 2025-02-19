@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { CSSTransition } from "react-transition-group";
 import "./App.css";
 
@@ -7,12 +7,12 @@ function App() {
    *                 STATE DECLARATIONS
    ********************************************************/
   const [editing, setEditing] = useState(false);       // Overlay editing mode
-  const [clinics, setClinics] = useState([]);          // List of clinics
-  const [treatments, setTreatments] = useState([]);    // List of treatments
-  const [loading, setLoading] = useState(true);        // Loading state
+  const [clinics, setClinics] = useState([]);            // List of clinics
+  const [treatments, setTreatments] = useState([]);      // List of treatments
+  const [loading, setLoading] = useState(true);          // Loading state
 
   // Autocomplete state
-  const [typedText, setTypedText] = useState("");              // The user’s typed text
+  const [typedText, setTypedText] = useState("");        // The user’s typed text
   const [filteredTreatments, setFilteredTreatments] = useState([]); 
   const [selectedTreatmentId, setSelectedTreatmentId] = useState("");
 
@@ -25,18 +25,24 @@ function App() {
   // Compare Clinics
   const [comparedClinics, setComparedClinics] = useState([]);
 
-  // Engaging copy
+  // Create a ref for the overlay to avoid findDOMNode calls.
+  const overlayRef = useRef(null);
+
+  // UI text constants.
   const builderCopy = {
     headline: "Add a Treatment",
-    subheading: "Enter the treatment you need and tap 'Add Treatment' to add it to your plan.",
+    subheading:
+      "Enter the treatment you need and tap 'Add Treatment' to add it to your plan.",
   };
   const summaryCopy = {
     headline: "Your Customized Treatment Plan",
-    subheading: "Review the treatments you've added below. You can add more treatments or proceed to select the clinic that best suits your needs.",
+    subheading:
+      "Review the treatments you've added below. You can add more treatments or proceed to select the clinic that best suits your needs.",
   };
   const clinicCopy = {
     headline: "Select a Clinic",
-    subheading: "Choose the clinic that best fits your needs. Estimated costs are based on your treatment plan.",
+    subheading:
+      "Choose the clinic that best fits your needs. Estimated costs are based on your treatment plan.",
   };
 
   /********************************************************
@@ -49,7 +55,7 @@ function App() {
         console.log("Fetched data:", data);
         setClinics(data.clinics || []);
         setTreatments(data.treatments || []);
-        // By default, show all treatments in the filtered list
+        // By default, show all treatments in the filtered list.
         setFilteredTreatments(data.treatments || []);
         setLoading(false);
       })
@@ -62,13 +68,11 @@ function App() {
   /********************************************************
    *            AUTOCOMPLETE HANDLERS & LOGIC
    ********************************************************/
-  // Called whenever user types in the overlay's text input
   const handleAutocompleteChange = (e) => {
     const value = e.target.value;
     setTypedText(value);
 
     if (!value) {
-      // If empty, show all
       setFilteredTreatments(treatments);
       setSelectedTreatmentId("");
     } else {
@@ -78,7 +82,6 @@ function App() {
       );
       setFilteredTreatments(filtered);
 
-      // If there's an exact match, select it
       const exactMatch = filtered.find(
         (t) => t.name.toLowerCase() === lowerValue
       );
@@ -86,7 +89,6 @@ function App() {
     }
   };
 
-  // Called when user clicks a treatment from the filtered list (if you want to implement a clickable list)
   const handleSelectTreatment = (treatmentObj) => {
     setTypedText(treatmentObj.name);
     setSelectedTreatmentId(treatmentObj.id);
@@ -95,7 +97,6 @@ function App() {
   /********************************************************
    *                TREATMENT PLAN LOGIC
    ********************************************************/
-  // Add the selected treatment to the plan
   const addTreatment = () => {
     if (selectedTreatmentId) {
       const treat = treatments.find((t) => t.id === selectedTreatmentId);
@@ -103,14 +104,13 @@ function App() {
         const newItem = { id: treat.id, name: treat.name, quantity: 1 };
         setTreatmentPlan((prev) => [...prev, newItem]);
       }
-      // Reset typed text & selection
+      // Reset typed text and selection.
       setTypedText("");
       setSelectedTreatmentId("");
       setEditing(false);
     }
   };
 
-  // Update the quantity of a treatment in the plan
   const updateQuantity = (index, newQuantity) => {
     const item = treatmentPlan[index];
     const maxUnits = treatments.find((t) => t.id === item.id)?.maxUnits || 1;
@@ -124,12 +124,10 @@ function App() {
     }
   };
 
-  // Remove a treatment from the plan
   const removeTreatment = (index) => {
     setTreatmentPlan((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Render the treatment plan summary as a table
   const renderPlanSummary = () => {
     if (treatmentPlan.length === 0) {
       return <p className="empty-summary">No treatments added yet.</p>;
@@ -151,9 +149,7 @@ function App() {
                 <input
                   type="number"
                   min="1"
-                  max={
-                    treatments.find((t) => t.id === item.id)?.maxUnits || 1
-                  }
+                  max={treatments.find((t) => t.id === item.id)?.maxUnits || 1}
                   value={item.quantity}
                   onChange={(e) =>
                     updateQuantity(idx, Number(e.target.value))
@@ -179,7 +175,6 @@ function App() {
   /********************************************************
    *               CLINIC LOGIC & RENDERING
    ********************************************************/
-  // Compute the estimated cost for a clinic based on the plan
   const computeClinicCost = (clinic) => {
     let total = 0;
     let missing = [];
@@ -197,28 +192,27 @@ function App() {
     return { total, missing };
   };
 
-  // Render the clinic selection cards
   const renderClinicCards = () => {
     return clinics.map((clinic) => {
       const { total, missing } = computeClinicCost(clinic);
       return (
         <div key={clinic.id} className="clinic-card">
-          {/* Optional image / highlights logic can go here */}
           <h3>{clinic.name || clinic["Clinic Name"] || "No Name"}</h3>
           <p className="clinic-location">
             {clinic.location || clinic["Location"] || "No Location"}
           </p>
-          <p className="clinic-cost">Estimated Total: ${total.toLocaleString()}</p>
+          <p className="clinic-cost">
+            Estimated Total: ${total.toLocaleString()}
+          </p>
           {missing.length > 0 && (
             <p className="clinic-warning">Missing: {missing.join(", ")}</p>
           )}
-          {/* Compare / select logic omitted for brevity */}
+          {/* Additional compare/select UI can be added here */}
         </div>
       );
     });
   };
 
-  // Compare logic
   const handleCompareClinic = (clinicId) => {
     setComparedClinics((prev) =>
       prev.includes(clinicId)
@@ -227,7 +221,7 @@ function App() {
     );
   };
 
-  // If no treatments, force the overlay open
+  // Force overlay open if no treatment has been added
   const effectiveEditing = treatmentPlan.length === 0 ? true : editing;
 
   /********************************************************
@@ -242,7 +236,6 @@ function App() {
           {/* STEP 1: Treatment Plan Builder */}
           {step === 1 && (
             <>
-              {/* If there's at least one treatment, show summary card */}
               {treatmentPlan.length > 0 && (
                 <div
                   className={`treatment-summary-card ${
@@ -269,14 +262,15 @@ function App() {
                 </div>
               )}
 
-              {/* Builder Overlay with CSSTransition */}
+              {/* Builder Overlay with CSSTransition and nodeRef */}
               <CSSTransition
                 in={effectiveEditing}
                 timeout={300}
                 classNames="fade-slide"
                 unmountOnExit
+                nodeRef={overlayRef}
               >
-                <div className="treatment-card overlay">
+                <div className="treatment-card overlay" ref={overlayRef}>
                   <h2>{builderCopy.headline}</h2>
                   <p>{builderCopy.subheading}</p>
 
@@ -316,7 +310,6 @@ function App() {
                   )}
 
                   <div className="form-group inline">
-                    {/* Show "Back" button only if there are treatments */}
                     {treatmentPlan.length > 0 && (
                       <button
                         className="btn secondary"
@@ -325,7 +318,6 @@ function App() {
                         Back
                       </button>
                     )}
-                    {/* Show "Add Treatment" if there's a valid selection */}
                     {selectedTreatmentId && (
                       <button className="btn primary" onClick={addTreatment}>
                         Add Treatment
