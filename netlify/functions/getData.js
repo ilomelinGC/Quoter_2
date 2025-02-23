@@ -138,58 +138,15 @@ const staticTreatments = [
   },
 ];
 
-// Mapping from treatment IDs to possible Airtable field names
-const treatmentFieldMapping = {
-  "all-on-four": [
-    "All-on-4 package for both arches - GC",
-    '"All on Four" System by Nobel or Straumann - GC',
-    '"All on Four"',
-  ],
-  "all-on-six": [
-    '"All on Six"',
-    '"All on Six" - GC',
-    "All-on-6 package for both arches",
-    "All-on-6 package for both arches - GC",
-  ],
-  "three-unit-bridge": ["3 unit bridge (Porcelain fused to Metal Crown) - GC"],
-  "bone-graft-large": ["Bone graft (large) - GC", "Bone graft (large)"],
-  "composite-filling": [
-    "Composite Filling",
-    "Composite Filling - GC",
-    "Composite Filling (1 surface)",
-    "Composite Filling (3 surface) - GC",
-  ],
-  "zirconium-crown": ["Zirconium Crown", "Zirconium Crown - GC"],
-  "snap-on-4": [
-    "Snap on-4 package for both arches",
-    "Snap on-4 package for both arches - GC",
-    "Snap on-4  - GC",
-  ],
-  "titanium-implant": [
-    "Titanium Dental Implant (implant only)",
-    "Titanium Dental Implant (implant only) - GC",
-    "Titanium Dental Implant (implant only) starting at - GC",
-  ],
-  "porcelain-veneer": ["Porcelain Veneer", "Porcelain Veneer - GC"],
-  "sinus-lift": ["Sinus Lift starting at", "Sinus Lift starting at - GC"],
-  "root-canal": [
-    "Root Canal (not including crown)",
-    "Root Canal Treatment (including post/core & standard crown)",
-    "Root Canal (not including crown) - GC",
-  ],
-  "temporary-crown": [
-    "Temporary Crown/Veneer",
-    "Temporary Crown (long term use)",
-    "Temporary Crown/Veneer - GC",
-  ],
-  "iv-sedation": ["IV Sedation (by anesthesiologist) - GC"],
-  "dental-cleaning": ["Dental Cleaning", "Dental Cleaning - GC"],
-};
+// We no longer need to map treatment IDs to specific Airtable field names,
+// so remove the treatmentFieldMapping logic entirely.
 
 const fetchAirtableData = async (tableName) => {
   const BASE_ID = process.env.AIRTABLE_BASE_ID;
   const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-  const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(tableName)}`;
+  const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(
+    tableName
+  )}`;
 
   const response = await fetch(url, {
     headers: {
@@ -203,27 +160,13 @@ const fetchAirtableData = async (tableName) => {
 
   const data = await response.json();
 
+  // For each record, simply return all its fields.
+  // For clinic records, ensure a 'highlights' field exists.
   return data.records.map((record) => {
     const fields = record.fields;
     if (tableName === CLINICS_TABLE) {
-      let pricing = {};
-      for (const treatmentId in treatmentFieldMapping) {
-        const possibleFields = treatmentFieldMapping[treatmentId];
-        for (const fieldName of possibleFields) {
-          if (fields.hasOwnProperty(fieldName)) {
-            pricing[treatmentId] = fields[fieldName];
-            break;
-          }
-        }
-      }
-      fields.procedurePricing = pricing;
-      // Ensure a 'highlights' field exists.
       if (!fields.hasOwnProperty("highlights")) {
-        if (fields["Specialties Available at Clinic"]) {
-          fields.highlights = fields["Specialties Available at Clinic"];
-        } else {
-          fields.highlights = []; // default to empty array
-        }
+        fields.highlights = fields["Specialties Available at Clinic"] || [];
       }
     }
     return {
